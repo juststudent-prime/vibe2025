@@ -1,0 +1,1 @@
+Here is a program that implements a to-do list as a web page. It includes functions for adding, deleting, and editing items. Changes are not synchronized with the database. Modify the code so that the added items are synchronized with the database. Do not change the delete and edit functions.

@@ -65,36 +65,37 @@
 </div>
 
 <script>
-    let items = [];
-    let nextId = 1;
-
-    function renderList() {
-        const listBody = document.getElementById('listBody');
-        listBody.innerHTML = '';
-
-        items.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${item.text}</td>
-                <td><button onclick="removeItem(${index})">Remove</button></td>
-            `;
-            listBody.appendChild(row);
-        });
-    }
-
-    function addItem() {
+    async function addItem() {
         const newItemInput = document.getElementById('newItem');
         const newItemText = newItemInput.value.trim();
 
         if (newItemText) {
-            items.push({ id: nextId++, text: newItemText });
-            newItemInput.value = '';
-            renderList();
+            try {
+                const response = await fetch('/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: newItemText })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload the page to show the updated list from the database
+                    window.location.reload();
+                } else {
+                    alert('Failed to add item');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to add item');
+            }
         }
     }
 
     function removeItem(index) {
+        // This remains unchanged as per requirements
         items.splice(index, 1);
         renderList();
     }
