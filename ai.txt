@@ -1,0 +1,20 @@
+Промпт 1
+Это файлы для создания сайта to-do list. Мне нужно привязать к сайту telegram бота. У меня есть оболочка от бота. напиши мне скрипт для работы бота со следующим функционалом: добавление, удаление и редактирование задач. Пришли мне код для бота и полный код всех измененных файлов
+
+Промпт 2
+node:_http_server:352
+    throw new ERR_HTTP_HEADERS_SENT('write');
+          ^
+
+Error [ERR_HTTP_HEADERS_SENT]: Cannot write headers after they are sent to the client
+    at ServerResponse.writeHead (node:_http_server:352:11)
+    at Server.handleRequest (/home/aniki/vibe/vibenew/index.js:373:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ERR_HTTP_HEADERS_SENT'
+}
+
+Исправь ошибку
+
+Промпт 3
+
+Бот работает, но на каждую команду выдаёт сообщение об ошибке

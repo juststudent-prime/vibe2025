@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "mysql2": "^3.14.0"
+    "axios": "^1.10.0",
+    "bcrypt": "^6.0.0",
+    "cookie": "^1.0.2",
+    "mysql2": "^3.14.1",
+    "node-telegram-bot-api": "^0.61.0"
   }
 }

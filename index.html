@@ -4,9 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do List</title>
+    <link rel="stylesheet" href="/styles.css">
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
         }
         #todoList {
             border-collapse: collapse;
@@ -21,84 +32,206 @@
         #todoList th {
             background-color: #f0f0f0;
         }
-        #todoList th:first-child, #todoList th:last-child {
-            width: 5%;
-        }
-        #todoList th:nth-child(2) {
-            width: 90%;
-        }
         .add-form {
-            margin-top: 20px;
-            width: 70%;
             margin: 20px auto;
+            width: 70%;
+            text-align: center;
         }
         .add-form input[type="text"] {
             padding: 8px;
             width: 70%;
         }
         .add-form button {
-            padding: 8px;
-            width: 20%;
+            padding: 8px 15px;
+            margin-left: 5px;
+        }
+        .edit-mode .item-text {
+            padding: 0;
+        }
+        .edit-input {
+            width: 70%;
+            padding: 5px;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+            text-align: center;
+        }
+        button {
+            cursor: pointer;
+        }
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+        }
+        .edit-btn, .save-btn, .cancel-btn {
+            padding: 5px 10px;
+            margin: 0 2px;
+        }
+        .user-info {
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body>
+    <header>
+        <h2>To-Do List</h2>
+        <div class="user-info">
+            Welcome, <span id="username"></span> | <a href="/logout">Logout</a>
+        </div>
+    </header>
 
-<h2 style="text-align: center;">To-Do List</h2>
+    <table id="todoList">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Text</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="listBody">
+            {{rows}}
+        </tbody>
+    </table>
 
-<table id="todoList">
-    <thead>
-        <tr>
-            <th>Number</th>
-            <th>Text</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody id="listBody">
-        {{rows}}
-    </tbody>
-</table>
+    <div class="add-form">
+        <input type="text" id="newItem" placeholder="Enter new item">
+        <button onclick="addItem()">Add</button>
+    </div>
 
-<div class="add-form">
-    <input type="text" id="newItem" placeholder="Enter new item">
-    <button onclick="addItem()">Add</button>
-</div>
+    <script>
+        // Функция добавления новой задачи
+        async function addItem() {
+            const newItemInput = document.getElementById('newItem');
+            const newItemText = newItemInput.value.trim();
 
-<script>
-    let items = [];
-    let nextId = 1;
+            if (newItemText) {
+                try {
+                    const response = await fetch('/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `text=${encodeURIComponent(newItemText)}`
+                    });
 
-    function renderList() {
-        const listBody = document.getElementById('listBody');
-        listBody.innerHTML = '';
-
-        items.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${item.text}</td>
-                <td><button onclick="removeItem(${index})">Remove</button></td>
-            `;
-            listBody.appendChild(row);
-        });
-    }
-
-    function addItem() {
-        const newItemInput = document.getElementById('newItem');
-        const newItemText = newItemInput.value.trim();
-
-        if (newItemText) {
-            items.push({ id: nextId++, text: newItemText });
-            newItemInput.value = '';
-            renderList();
+                    if (response.redirected) {
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to add item');
+                }
+                newItemInput.value = '';
+            }
         }
-    }
 
-    function removeItem(index) {
-        items.splice(index, 1);
-        renderList();
-    }
-</script>
+        // Обработчики для кнопок удаления и редактирования
+        document.addEventListener('DOMContentLoaded', () => {
+            // Установка имени пользователя
+            const cookies = document.cookie.split(';').reduce((cookies, cookie) => {
+                const [name, value] = cookie.split('=').map(c => c.trim());
+                cookies[name] = value;
+                return cookies;
+            }, {});
 
+            if (cookies.username) {
+                document.getElementById('username').textContent = cookies.username;
+            }
+
+            // Обработчик кликов по таблице
+            document.getElementById('listBody').addEventListener('click', async (e) => {
+                // Удаление задачи
+                if (e.target.classList.contains('delete-btn')) {
+                    const id = e.target.getAttribute('data-id');
+                    if (confirm('Are you sure you want to delete this item?')) {
+                        try {
+                            const response = await fetch('/delete', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: `id=${id}`
+                            });
+
+                            if (response.redirected) {
+                                window.location.reload();
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to delete item');
+                        }
+                    }
+                }
+
+                // Редактирование задачи
+                if (e.target.classList.contains('edit-btn')) {
+                    startEdit(e.target.closest('tr'));
+                }
+            });
+        });
+
+        // Функции для редактирования задачи
+        function startEdit(row) {
+            const id = row.dataset.id;
+            const textCell = row.querySelector('.item-text');
+            const originalText = textCell.textContent;
+
+            // Переход в режим редактирования
+            row.classList.add('edit-mode');
+            textCell.innerHTML = `
+                <input type="text" class="edit-input" value="${originalText}">
+                <button class="save-btn">Save</button>
+                <button class="cancel-btn">Cancel</button>
+            `;
+
+            // Фокусировка на поле ввода
+            textCell.querySelector('.edit-input').focus();
+
+            // Обработчик сохранения
+            textCell.querySelector('.save-btn').addEventListener('click', async () => {
+                const newText = textCell.querySelector('.edit-input').value.trim();
+                if (newText && newText !== originalText) {
+                    try {
+                        const response = await fetch('/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `id=${id}&text=${encodeURIComponent(newText)}`
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                window.location.reload();
+                            } else {
+                                alert('Error updating item');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to update item');
+                    }
+                }
+                cancelEdit(row, originalText);
+            });
+
+            // Обработчик отмены
+            textCell.querySelector('.cancel-btn').addEventListener('click', () => {
+                cancelEdit(row, originalText);
+            });
+        }
+
+        function cancelEdit(row, originalText) {
+            row.classList.remove('edit-mode');
+            const textCell = row.querySelector('.item-text');
+            textCell.textContent = originalText;
+        }
+    </script>
 </body>
 </html>
