@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <header>
+        <h2>To-Do List</h2>
+        <div class="user-info">
+            Welcome, <span id="username"></span> | <a href="/logout">Logout</a>
+        </div>
+    </header>
     <title>To-Do List</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
+        body { font-family: Arial, sans-serif; }
         #todoList {
             border-collapse: collapse;
             width: 70%;
@@ -18,27 +22,19 @@
             padding: 8px;
             text-align: left;
         }
-        #todoList th {
-            background-color: #f0f0f0;
-        }
-        #todoList th:first-child, #todoList th:last-child {
-            width: 5%;
-        }
-        #todoList th:nth-child(2) {
-            width: 90%;
-        }
+        #todoList th { background-color: #f0f0f0; }
         .add-form {
-            margin-top: 20px;
-            width: 70%;
             margin: 20px auto;
+            width: 70%;
+            text-align: center;
         }
         .add-form input[type="text"] {
             padding: 8px;
             width: 70%;
         }
         .add-form button {
-            padding: 8px;
-            width: 20%;
+            padding: 8px 15px;
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -49,7 +45,7 @@
 <table id="todoList">
     <thead>
         <tr>
-            <th>Number</th>
+            <th>ID</th>
             <th>Text</th>
             <th>Action</th>
         </tr>
@@ -74,30 +70,20 @@
                 const response = await fetch('/add', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: JSON.stringify({ text: newItemText })
+                    body: `text=${encodeURIComponent(newItemText)}`
                 });
 
-                const result = await response.json();
-
-                if (result.success) {
-                    // Reload the page to show the updated list from the database
+                if (response.redirected) {
                     window.location.reload();
-                } else {
-                    alert('Failed to add item');
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to add item');
             }
+            newItemInput.value = '';
         }
-    }
-
-    function removeItem(index) {
-        // This remains unchanged as per requirements
-        items.splice(index, 1);
-        renderList();
     }
 </script>
 
