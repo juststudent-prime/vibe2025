@@ -4,59 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do List</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        #todoList {
-            border-collapse: collapse;
-            width: 70%;
-            margin: 0 auto;
-        }
-        #todoList th, #todoList td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        #todoList th {
-            background-color: #f0f0f0;
-        }
-        #todoList th:first-child, #todoList th:last-child {
-            width: 5%;
-        }
-        #todoList th:nth-child(2) {
-            width: 80%;
-        }
-        .add-form {
-            margin-top: 20px;
-            width: 70%;
-            margin: 20px auto;
-        }
-        .add-form input[type="text"] {
-            padding: 8px;
-            width: 70%;
-        }
-        .add-form button {
-            padding: 8px;
-            width: 20%;
-        }
-        .edit-input {
-            width: 100%;
-            padding: 5px;
-            box-sizing: border-box;
-        }
-    </style>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-
-<h2 style="text-align: center;">To-Do List</h2>
+    <header>
+        <h2>To-Do List</h2>
+        <div class="user-info">
+            Welcome, <span id="username"></span> | <a href="/logout">Logout</a>
+        </div>
+    </header>
 
 <table id="todoList">
     <thead>
         <tr>
-            <th>Number</th>
+            <th>ID</th>
             <th>Text</th>
-            <th>Action</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody id="listBody">
@@ -70,109 +33,82 @@
 </div>
 
 <script>
-    let items = [];
-    let nextId = 1;
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('listBody').addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-btn')) {
+                startEdit(e.target.closest('tr'));
+            }
+        });
+    });
 
-    function renderList() {
-        const listBody = document.getElementById('listBody');
-        listBody.innerHTML = '';
+    function startEdit(row) {
+        const id = row.dataset.id;
+        const textCell = row.querySelector('.item-text');
+        const originalText = textCell.textContent;
 
-        items.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${item.text}</td>
-                <td>
-                    <button onclick="startEdit(${index})">Edit</button>
-                    <button onclick="removeItem(${index})">Remove</button>
-                </td>
-            `;
-            listBody.appendChild(row);
+        // Switch to edit mode
+        row.classList.add('edit-mode');
+        textCell.innerHTML = `
+            <input type="text" class="edit-input" value="${originalText}">
+            <button class="save-btn">Save</button>
+            <button class="cancel-btn">Cancel</button>
+        `;
+
+        // Focus the input field
+        textCell.querySelector('.edit-input').focus();
+
+        // Handle save
+        textCell.querySelector('.save-btn').addEventListener('click', async () => {
+            const newText = textCell.querySelector('.edit-input').value.trim();
+            if (newText && newText !== originalText) {
+                try {
+                    const response = await fetch('/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `id=${id}&text=${encodeURIComponent(newText)}`
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error updating item');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to update item');
+                }
+            }
+            cancelEdit(row, originalText);
+        });
+
+        // Handle cancel
+        textCell.querySelector('.cancel-btn').addEventListener('click', () => {
+            cancelEdit(row, originalText);
         });
     }
 
-    function addItem() {
-        const newItemInput = document.getElementById('newItem');
-        const newItemText = newItemInput.value.trim();
-
-        if (newItemText) {
-            items.push({ id: nextId++, text: newItemText });
-            newItemInput.value = '';
-            renderList();
-        }
+    function cancelEdit(row, originalText) {
+        row.classList.remove('edit-mode');
+        const textCell = row.querySelector('.item-text');
+        textCell.textContent = originalText;
     }
+            document.addEventListener('DOMContentLoaded', () => {
+            // Получаем имя пользователя из куки
+            const cookies = document.cookie.split(';').reduce((cookies, cookie) => {
+                const [name, value] = cookie.split('=').map(c => c.trim());
+                cookies[name] = value;
+                return cookies;
+            }, {});
 
-    function removeItem(index) {
-        items.splice(index, 1);
-        renderList();
-    }
-
-    async function startEdit(index) {
-        const listBody = document.getElementById('listBody');
-        const row = listBody.children[index];
-        const currentText = items[index].text;
-        const currentId = items[index].id;
-
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><input type="text" class="edit-input" value="${currentText}"></td>
-            <td>
-                <button onclick="saveEdit(${index}, ${currentId})">Save</button>
-                <button onclick="cancelEdit(${index})">Cancel</button>
-            </td>
-        `;
-    }
-
-    function cancelEdit(index) {
-        renderList();
-    }
-
-    async function saveEdit(index, id) {
-        const listBody = document.getElementById('listBody');
-        const row = listBody.children[index];
-        const newText = row.querySelector('.edit-input').value.trim();
-
-        if (newText) {
-            try {
-                const response = await fetch('/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ id, text: newText }),
-                });
-
-                if (response.ok) {
-                    items[index].text = newText;
-                    renderList();
-                } else {
-                    alert('Failed to update item');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error updating item');
+            if (cookies.username) {
+                document.getElementById('username').textContent = cookies.username;
             }
-        }
-    }
-
-    // Load initial items from server
-    async function loadItems() {
-        try {
-            const response = await fetch('/items');
-            if (response.ok) {
-                items = await response.json();
-                if (items.length > 0) {
-                    nextId = Math.max(...items.map(item => item.id)) + 1;
-                }
-                renderList();
-            }
-        } catch (error) {
-            console.error('Error loading items:', error);
-        }
-    }
-
-    // Call loadItems when page loads
-    window.onload = loadItems;
+        });
 </script>
 
 </body>
