@@ -5,6 +5,7 @@ const mysql = require('mysql2/promise');
 const url = require('url');
 const bcrypt = require('bcrypt');
 const cookie = require('cookie');
+const querystring = require('querystring');
 
 const PORT = 3000;
 
@@ -70,15 +71,14 @@ async function retrieveListItems(userId) {
     }
 }
 
-async function addItemToDB(text, userId) {
+async function deleteItemFromDB(id) {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        const query = 'INSERT INTO items (text, user_id) VALUES (?, ?)';
-        const [result] = await connection.execute(query, [text, userId]);
+        const query = 'DELETE FROM items WHERE id = ?';
+        await connection.execute(query, [id]);
         await connection.end();
-        return result.insertId;
     } catch (error) {
-        console.error('Error adding item:', error);
+        console.error('Error deleting item:', error);
         throw error;
     }
 }
@@ -235,24 +235,24 @@ async function handleRequest(req, res) {
             res.end('Error loading index.html');
         }
     }
-    else if (req.method === 'POST' && parsedUrl.pathname === '/add') {
+    else if (req.method === 'POST' && parsedUrl.pathname === '/delete') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
         req.on('end', async () => {
-            const text = new URLSearchParams(body).get('text');
-            if (text && text.trim()) {
+            const { id } = querystring.parse(body);
+            if (id) {
                 try {
-                    await addItemToDB(text.trim(), userId);
+                    await deleteItemFromDB(id);
                     res.writeHead(302, { 'Location': '/' });
                     res.end();
                 } catch (error) {
                     console.error(error);
                     res.writeHead(500, { 'Content-Type': 'text/plain' });
-                    res.end('Error adding item');
+                    res.end('Error deleting item');
                 }
             } else {
                 res.writeHead(400, { 'Content-Type': 'text/plain' });
-                res.end('Invalid input');
+                res.end('Invalid ID');
             }
         });
     }
